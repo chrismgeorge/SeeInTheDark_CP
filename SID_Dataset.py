@@ -1,0 +1,71 @@
+import os,time,scipy.io
+
+import numpy as np
+import rawpy
+import glob
+import pdb
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+class Dataset(data.Dataset):
+    def __init__(self, train_ids):
+        pdb.set_trace() # TODO: Save data correctly.
+        self.train_ids = train_ids
+        
+    def __len__(self):
+        return len(self.train_ids)
+    
+    def __getitem__(self, ind):
+        # Get the path from image id
+        train_id = self.train_ids[ind]
+        in_files = glob.glob(input_dir + '%05d_00*.ARW' % train_id)
+        in_path = in_files[np.random.random_integers(0, len(in_files) - 1)]
+        _, in_fn = os.path.split(in_path)
+
+        gt_files = glob.glob(gt_dir + '%05d_00*.ARW' % train_id)
+        gt_path = gt_files[0]
+        _, gt_fn = os.path.split(gt_path)
+        in_exposure =  float(in_fn[9:-5])
+        gt_exposure =  float(gt_fn[9:-5])
+        ratio = min(gt_exposure/in_exposure,300)
+        
+        # Read raw image
+        if input_images[str(ratio)[0:3]][ind] is None:
+            raw = rawpy.imread(in_path)
+            input_images[str(ratio)[0:3]][ind] = np.expand_dims(pack_raw(raw),axis=0) *ratio
+
+            gt_raw = rawpy.imread(gt_path)
+            im = gt_raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
+            gt_images[ind] = np.expand_dims(np.float32(im/65535.0),axis = 0)
+
+        # Crop
+        H = input_images[str(ratio)[0:3]][ind].shape[1]
+        W = input_images[str(ratio)[0:3]][ind].shape[2]
+
+        xx = np.random.randint(0,W-ps)
+        yy = np.random.randint(0,H-ps)
+        input_patch = input_images[str(ratio)[0:3]][ind][:,yy:yy+ps,xx:xx+ps,:]
+        gt_patch = gt_images[ind][:,yy*2:yy*2+ps*2,xx*2:xx*2+ps*2,:]
+       
+        # Random flip or transpose
+        if np.random.randint(2, size=1)[0] == 1:  
+            input_patch = np.flip(input_patch, axis=1)
+            gt_patch = np.flip(gt_patch, axis=1)
+        if np.random.randint(2, size=1)[0] == 1: 
+            input_patch = np.flip(input_patch, axis=0)
+            gt_patch = np.flip(gt_patch, axis=0)
+        if np.random.randint(2, size=1)[0] == 1: 
+            input_patch = np.transpose(input_patch, (0,2,1,3))
+            gt_patch = np.transpose(gt_patch, (0,2,1,3))
+        
+        # Clip the images
+        input_patch = np.minimum(input_patch,1.0)
+        gt_patch = np.maximum(gt_patch, 0.0)
+        
+        # Place onto device and torch it
+        in_img = torch.from_numpy(input_patch).permute(0,3,1,2).to(device)
+        gt_img = torch.from_numpy(gt_patch).permute(0,3,1,2).to(device)
+        
+        return in_img, gt_img
