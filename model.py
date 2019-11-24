@@ -3,10 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SeeInDark(nn.Module):
-    def __init__(self, num_classes=10):
+    def __init__(self):
         super(SeeInDark, self).__init__()
         
-        #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.conv1_1 = nn.Conv2d(4, 32, kernel_size=3, stride=1, padding=1)
         self.conv1_2 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1)
         self.pool1 = nn.MaxPool2d(kernel_size=2)
