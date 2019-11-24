@@ -14,6 +14,7 @@ test_result_dir = './test_result_Sony/'
 # Globals
 ps = 512 # patch size (training)
 save_freq = 100
+BATCH_SIZE = 1
 
 # Device
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')

@@ -1,15 +1,17 @@
-import os,time,scipy.io
+import os, time, scipy.io, pdb
 
-import numpy as np
-import rawpy
 import glob
-import pdb
+import rawpy
+import numpy as np
 
 import torch
 import torch.nn as nn
+
+from GLOBALS import *
+from utils import pack_raw
 import torch.optim as optim
 from torch.utils import data
-from GLOBALS import *
+
 
 class Dataset(data.Dataset):
     def __init__(self, train_ids):
@@ -48,7 +50,7 @@ class Dataset(data.Dataset):
             gt_raw = rawpy.imread(gt_path)
             im = gt_raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
             self.gt_images[ind] = np.expand_dims(np.float32(im/65535.0),axis = 0)
-
+            
         # Crop
         H = self.input_images[str(ratio)[0:3]][ind].shape[1]
         W = self.input_images[str(ratio)[0:3]][ind].shape[2]
@@ -56,8 +58,8 @@ class Dataset(data.Dataset):
         xx = np.random.randint(0,W-ps)
         yy = np.random.randint(0,H-ps)
         input_patch = self.input_images[str(ratio)[0:3]][ind][:,yy:yy+ps,xx:xx+ps,:]
-        gt_patch = self.gt_images[ind][:,yy*2:yy*2+ps*2,xx*2:xx*2+ps*2,:]
-       
+        gt_patch = self.gt_images[ind][:, yy*2:yy*2+ps*2, xx*2:xx*2+ps*2, :]
+        
         # Random flip or transpose
         if np.random.randint(2, size=1)[0] == 1:  
             input_patch = np.flip(input_patch, axis=1)
@@ -74,7 +76,7 @@ class Dataset(data.Dataset):
         gt_patch = np.maximum(gt_patch, 0.0)
         
         # Place onto device and torch it
-        in_img = torch.from_numpy(input_patch).permute(0,3,1,2).to(device)
-        gt_img = torch.from_numpy(gt_patch).permute(0,3,1,2).to(device)
+        in_img = torch.from_numpy(input_patch).permute(0,3,1,2)
+        gt_img = torch.from_numpy(gt_patch).permute(0,3,1,2)
         
-        return in_img, gt_img
+        return in_img, gt_img, train_id, ratio
