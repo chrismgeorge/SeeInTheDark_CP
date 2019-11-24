@@ -14,9 +14,6 @@ def train(model, epoch, dataloader, optimizer):
     running_loss = 0.0
     count = 0
     for (in_img, gt_img, train_ids, ratios) in dataloader:
-        # Time it
-        start_time = time.time()
-        
         # Twice as big because model upsamples.
         gt_img = gt_img.view((BATCH_SIZE, 3, ps*2, ps*2)).to(device).float()
         in_img = in_img.view((BATCH_SIZE, 4, ps, ps)).to(device).float()
@@ -36,13 +33,9 @@ def train(model, epoch, dataloader, optimizer):
         optimizer.step()
         
         if count % save_freq == 0 and count == 0:
-            save_current_model(model, epoch, out_img, gt_img, train_ids[0].item(), ratios[0].item())
+            save_current_model(model, epoch, out_img[0], gt_img[0], train_ids[0].item(), ratios[0].item())
             count += 1
 
-        # Time it
-        end_time = time.time()
-        print("Time: ", end_time - start_time)
-   
     return running_loss
             
 

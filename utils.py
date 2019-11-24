@@ -1,4 +1,4 @@
-import os, scipy.io
+import os, scipy.io, pdb
 
 import glob
 import rawpy
@@ -43,7 +43,6 @@ def pack_raw(raw):
 def reduce_mean(out_im, gt_im):
     return torch.abs(out_im - gt_im).mean()
 
-# TODO: Fix for > 1 batch size
 def save_current_model(model, epoch, out_img, gt_img, train_id, ratio):
     # Make directory if empty
     if not os.path.isdir(result_dir + '%04d'%epoch):
@@ -52,11 +51,11 @@ def save_current_model(model, epoch, out_img, gt_img, train_id, ratio):
         os.makedirs(model_dir)
     
     # Re-Permute the image
-    output = out_img.permute(0, 2, 3, 1).cpu().data.numpy()
-    gt_patch = gt_img.permute(0, 2, 3, 1).cpu().data.numpy()
+    output = out_img.permute(1, 2, 0).cpu().data.numpy()
+    gt_patch = gt_img.permute(1, 2, 0).cpu().data.numpy()
     
-    output = np.minimum(np.maximum(output,0),1)
-    temp = np.concatenate((gt_patch[0,:,:,:], output[0,:,:,:]), axis=1)
+    output = np.minimum(np.maximum(output, 0), 1)
+    temp = np.concatenate((gt_patch[:,:,:], output[:,:,:]), axis=0)
     pdb.set_trace()
     
     # Save test out image
