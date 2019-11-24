@@ -13,6 +13,7 @@ def train(model, epoch, dataloader, optimizer):
     
     running_loss = 0.0
     for (in_img, gt_img) in dataloader:
+        pdb.set_trace()
         # Zero gradients
         optimizer.zero_grad()
         

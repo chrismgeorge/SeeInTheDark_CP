@@ -9,11 +9,19 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils import data
+from GLOBALS import *
 
 class Dataset(data.Dataset):
     def __init__(self, train_ids):
-        pdb.set_trace() # TODO: Save data correctly.
+        # Ids
         self.train_ids = train_ids
+        
+        # Image data
+        self.gt_images=[None]*6000
+        self.input_images = {}
+        self.input_images['300'] = [None]*len(train_ids)
+        self.input_images['250'] = [None]*len(train_ids)
+        self.input_images['100'] = [None]*len(train_ids)
         
     def __len__(self):
         return len(self.train_ids)
@@ -33,22 +41,22 @@ class Dataset(data.Dataset):
         ratio = min(gt_exposure/in_exposure,300)
         
         # Read raw image
-        if input_images[str(ratio)[0:3]][ind] is None:
+        if self.input_images[str(ratio)[0:3]][ind] is None:
             raw = rawpy.imread(in_path)
-            input_images[str(ratio)[0:3]][ind] = np.expand_dims(pack_raw(raw),axis=0) *ratio
+            self.input_images[str(ratio)[0:3]][ind] = np.expand_dims(pack_raw(raw),axis=0) *ratio
 
             gt_raw = rawpy.imread(gt_path)
             im = gt_raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
-            gt_images[ind] = np.expand_dims(np.float32(im/65535.0),axis = 0)
+            self.gt_images[ind] = np.expand_dims(np.float32(im/65535.0),axis = 0)
 
         # Crop
-        H = input_images[str(ratio)[0:3]][ind].shape[1]
-        W = input_images[str(ratio)[0:3]][ind].shape[2]
+        H = self.input_images[str(ratio)[0:3]][ind].shape[1]
+        W = self.input_images[str(ratio)[0:3]][ind].shape[2]
 
         xx = np.random.randint(0,W-ps)
         yy = np.random.randint(0,H-ps)
-        input_patch = input_images[str(ratio)[0:3]][ind][:,yy:yy+ps,xx:xx+ps,:]
-        gt_patch = gt_images[ind][:,yy*2:yy*2+ps*2,xx*2:xx*2+ps*2,:]
+        input_patch = self.input_images[str(ratio)[0:3]][ind][:,yy:yy+ps,xx:xx+ps,:]
+        gt_patch = self.gt_images[ind][:,yy*2:yy*2+ps*2,xx*2:xx*2+ps*2,:]
        
         # Random flip or transpose
         if np.random.randint(2, size=1)[0] == 1:  
