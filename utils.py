@@ -4,6 +4,7 @@ import glob
 import rawpy
 import torch
 import numpy as np
+from GLOBALS import *
 
 def get_train_ids():
     # Get train ids

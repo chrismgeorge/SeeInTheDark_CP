@@ -1,8 +1,12 @@
 import time, pdb
 
+from GLOBALS import device
 from utils import pack_raw, reduce_mean, save_current_model
 
 def train(model, epoch, dataloader, optimizer):
+    model.train()
+    model.to(device)
+    
     if epoch > 2000:
         for g in optimizer.param_groups:
             g['lr'] = 1e-5

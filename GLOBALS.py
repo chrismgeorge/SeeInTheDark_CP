@@ -1,3 +1,5 @@
+import torch
+
 # Directories
 input_dir = './dataset/Sony/short/'
 gt_dir = './dataset/Sony/long/'

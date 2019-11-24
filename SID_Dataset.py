@@ -8,6 +8,7 @@ import pdb
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils import data
 
 class Dataset(data.Dataset):
     def __init__(self, train_ids):

@@ -3,6 +3,14 @@ Replication of experiments for the Learning to See in the Dark paper, as well as
 
 Code adapted from: https://github.com/ninetf135246/pytorch-Learning-to-See-in-the-Dark
 
+### Setup
+* df -h, make sure there is at least 250 GB in volume
+* make a dataset folder
+* python download_dataset.py
+* sudo pip3 install rawpy
+* jupyter-nbconvert --to script main.ipynb
+* run from terminal
+
 ### Training
 Run the main file as a jupyter notebook or converted .py file.
 (From PLSID)
