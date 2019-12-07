@@ -25,13 +25,21 @@ class Dataset(data.Dataset):
         self.input_images['250'] = [None]*len(train_ids)
         self.input_images['100'] = [None]*len(train_ids)
         
+        self.pre_process()
+        
+    def pre_process(self):
+        pass
+        
     def __len__(self):
+        return 1
         return len(self.train_ids)
     
     def __getitem__(self, ind):
         # Get the path from image id
         train_id = self.train_ids[ind]
         in_files = glob.glob(input_dir + '%05d_00*.ARW' % train_id)
+        
+        
         in_path = in_files[np.random.random_integers(0, len(in_files) - 1)]
         _, in_fn = os.path.split(in_path)
 
@@ -41,7 +49,7 @@ class Dataset(data.Dataset):
         in_exposure =  float(in_fn[9:-5])
         gt_exposure =  float(gt_fn[9:-5])
         ratio = min(gt_exposure/in_exposure,300)
-        
+
         # Read raw image
         if self.input_images[str(ratio)[0:3]][ind] is None:
             raw = rawpy.imread(in_path)

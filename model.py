@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from GLOBALS import * 
 
 class SeeInDark(nn.Module):
     def __init__(self):
@@ -42,6 +43,8 @@ class SeeInDark(nn.Module):
         self.conv9_2 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1)
         
         self.conv10_1 = nn.Conv2d(32, 12, kernel_size=1, stride=1)
+        
+        self.outty = nn.Conv2d(1, 256, kernel_size=3, stride=1, padding=1)
     
     def forward(self, x):
         conv1 = self.lrelu(self.conv1_1(x))
@@ -82,9 +85,11 @@ class SeeInDark(nn.Module):
         up9 = torch.cat([up9, conv1], 1)
         conv9 = self.lrelu(self.conv9_1(up9))
         conv9 = self.lrelu(self.conv9_2(conv9))
-        
         conv10= self.conv10_1(conv9)
         out = nn.functional.pixel_shuffle(conv10, 2)
+        
+        baseline = self.baseline(out)
+    
         return out
 
     def _initialize_weights(self):
@@ -99,3 +104,39 @@ class SeeInDark(nn.Module):
     def lrelu(self, x):
         outt = torch.max(0.2*x, x)
         return outt
+
+    def baseline(self, out):
+        #print('Shape of out: ' + str(out.shape))
+        rgb = torch.split(out, 1, dim = 1)
+        rgb = list(rgb)
+        #print('Splitted in to: ' + str(len(rgb)) + ' partitions')
+        #print('The first 0th partition has the shape: ' + str(rgb[0].shape))
+        
+        # Converting to 1 X W*H
+        #color1 = rgb[0].view(1, -1)
+        #color2 = rgb[1].view(1, -1)
+        #color3 = rgb[2].view(1, -1)
+        #print('Converting it to 1 X W*H, now the first 0th partition has the shape: ' + str(color1.shape))
+        color0 = self.outty(rgb[0])
+        color1 = self.outty(rgb[1])
+        color2 = self.outty(rgb[2])
+        #print('Convolution Layer of 0th has the shape: ' + str(color0.shape))
+        
+        # Take the softmax
+        color0 = F.softmax(color0, dim = 1)
+        color1 = F.softmax(color1, dim = 1)
+        color2 = F.softmax(color2, dim = 1)
+        #print('After softmax, Convolution Layer of 0th has the shape: ' + str(color0.shape))
+        
+        # Take the argmax
+        color0 = torch.argmax(color0, dim = 1)
+        color1 = torch.argmax(color1, dim = 1)
+        color2 = torch.argmax(color2, dim = 1)
+        #print('After argmax, Convolution Layer of 0th has the shape: ' + str(color0.shape))
+        
+        result = torch.cat((color0, color1, color2), 0)
+        #print('Concatenated tensor is size: ' + str(result.shape))
+        return result
+        
+        
+        
