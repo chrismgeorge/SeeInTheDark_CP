@@ -56,7 +56,7 @@ def save_current_model(model, epoch, out_img, gt_img, train_id, ratio):
     
     output = np.minimum(np.maximum(output, 0), 1)
     temp = np.concatenate((gt_patch[:,:,:], output[:,:,:]), axis=0)
-    pdb.set_trace()
+#     pdb.set_trace()
     
     # Save test out image
     scipy.misc.toimage(temp*255,  high=255, low=0, cmin=0, cmax=255).save(
