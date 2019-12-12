@@ -31,7 +31,7 @@ class Dataset(data.Dataset):
         pass
         
     def __len__(self):
-        return 1
+#         return 1 # for testing
         return len(self.train_ids)
     
     def __getitem__(self, ind):
