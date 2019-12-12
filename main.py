@@ -11,6 +11,7 @@ from torch.utils import data
 from GLOBALS import * 
 from train import train
 from model import SeeInDark
+from structured_svm import SeeInDark_Structured_SVM
 from SID_Dataset import Dataset
 from utils import get_train_ids, get_test_ids
 
@@ -28,7 +29,7 @@ def main():
         test_ids = test_ids[0:5]
 
     print('Making model and dataset')
-    model = SeeInDark()
+    model = SeeInDark_Structured_SVM()
     model._initialize_weights()
     
     train_dataset = Dataset(train_ids)
@@ -41,12 +42,12 @@ def main():
     train_losses = []
     
     #for epoch in range(0, 5000):
-    for epoch in range(0, 5000):
+    for epoch in range(0, 5001):
         # time it
         start_time = time.time()
         
         # Run an epoch
-        train_loss = train(model, epoch, dataloader, optimizer)
+        train_loss = train_svm(model, epoch, dataloader, optimizer)
         train_losses.append(train_loss)
         
         # time it

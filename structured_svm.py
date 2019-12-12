@@ -1,11 +1,12 @@
+import pdb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from GLOBALS import * 
 
-class SeeInDark(nn.Module):
+class SeeInDark_Structured_SVM(nn.Module):
     def __init__(self):
-        super(SeeInDark, self).__init__()
+        super(SeeInDark_Structured_SVM, self).__init__()
         
         self.conv1_1 = nn.Conv2d(4, 32, kernel_size=3, stride=1, padding=1)
         self.conv1_2 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1)
@@ -45,8 +46,11 @@ class SeeInDark(nn.Module):
         self.conv10_1 = nn.Conv2d(32, 12, kernel_size=1, stride=1)
         
         self.outty = nn.Conv2d(1, 256, kernel_size=3, stride=1, padding=1)
+        
+        self.lin_concat = nn.Conv2d(512*3, 3, kernel_size=3, stride=1, padding=1)
     
     def forward(self, x):
+#         print('Forward pass')
         conv1 = self.lrelu(self.conv1_1(x))
         conv1 = self.lrelu(self.conv1_2(conv1))
         pool1 = self.pool1(conv1)
@@ -86,11 +90,14 @@ class SeeInDark(nn.Module):
         conv9 = self.lrelu(self.conv9_1(up9))
         conv9 = self.lrelu(self.conv9_2(conv9))
         conv10= self.conv10_1(conv9)
+        
         out = nn.functional.pixel_shuffle(conv10, 2)
         
-        baseline = self.baseline(out)
-    
-        return baseline
+        # (unary_potentials, rightNeighbor0, rightNeighbor1, rightNeighbor2, 
+        #  downNeighbor0, downNeighbor1, downNeighbor2)
+        experimental = self.experimental(out)
+
+        return experimental
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -104,20 +111,20 @@ class SeeInDark(nn.Module):
     def lrelu(self, x):
         outt = torch.max(0.2*x, x)
         return outt
-
-    def baseline(self, out):
-        #print('Shape of out: ' + str(out.shape))
+    
+    def experimental(self, out):
+#         print('Shape of out: ' + str(out.shape))
         rgb = torch.split(out, 1, dim = 1)
         rgb = list(rgb)
-        #print('Splitted in to: ' + str(len(rgb)) + ' partitions')
-        #print('The first 0th partition has the shape: ' + str(rgb[0].shape))
+#         print('Splitted in to: ' + str(len(rgb)) + ' partitions')
+#         print('The first 0th partition has the shape: ' + str(rgb[0].shape))
         
         # Pass through convolution layer
         color0 = self.outty(rgb[0])
         color1 = self.outty(rgb[1])
         color2 = self.outty(rgb[2])
-        #print('Convolution Layer of 0th has the shape: ' + str(color0.shape))
-
+#         print('Convolution Layer of 0th has the shape: ' + str(color0.shape))
+        
         # Take the softmax
         color0 = F.softmax(color0, dim = 1)
         color1 = F.softmax(color1, dim = 1)
@@ -125,15 +132,50 @@ class SeeInDark(nn.Module):
         #print('After softmax, Convolution Layer of 0th has the shape: ' + str(color0.shape))
         
         # Take the max
-        color0, _ = torch.max(color0, dim = 1)
-        color1, _ = torch.max(color1, dim = 1)
-        color2, _ = torch.max(color2, dim = 1)
-        #print('After max, Convolution Layer of 0th has the shape: ' + str(color0.shape))
+        u1, _ = torch.max(color0, dim = 1)
+        u2, _ = torch.max(color1, dim = 1)
+        u3, _ = torch.max(color2, dim = 1)
+        result = torch.cat((u1, u2, u3), 0)
+        unary_potentials = result.unsqueeze(0).float()
+        
+        # Concatenating Neighboring pixels of same color (To the right)
+        edge_width = 2*ps - 1
 
-        result = torch.cat((color0, color1, color2), 0)
-        #print('Concatenated tensor is size: ' + str(result.shape))
+        # Color 0
+        currentPixelR0 = color0[0, :, :edge_width, :]
+        rightPixel0 = color0[0, :, 1:, :]
+        rightNeighbor0 = torch.cat((currentPixelR0, rightPixel0))
+       
+        # Color 1
+        currentPixelR1 =  color1[0, :, :edge_width, :]
+        rightPixel1 = color1[0, :, 1:, :]
+        rightNeighbor1 = torch.cat((currentPixelR1, rightPixel1), 0)
 
-        unsqueezed_result = result.unsqueeze(0).float()
+        # Color 2
+        currentPixelR2 = color2[0, :, :edge_width, :]
+        rightPixel2 = color2[0, :, 1:, :]
+        rightNeighbor2 = torch.cat((currentPixelR2, rightPixel2), 0)
 
-        return unsqueezed_result
-   
+        # Concatenating Neighboring pixels of same color (To below)
+        # Color 0
+        currentPixelD0 = color0[0, :, :, :edge_width]
+        downPixel0 = color0[0, :, :, 1:]
+        downNeighbor0 = torch.cat((currentPixelD0, downPixel0), 0)
+        
+        # Color 1
+        currentPixelD1 = color1[0, :, :, :edge_width]
+        downPixel1 = color1[0, :, :, 1:]
+        downNeighbor1 = torch.cat((currentPixelD1, downPixel1), 0)
+        
+        # Color 2
+        currentPixelD2 = color2[0, :, :, :edge_width]
+        downPixel2 = color2[0, :, :, 1:]
+        downNeighbor2 = torch.cat((currentPixelD2, downPixel2), 0)
+        
+        right_neighbors = torch.cat((rightNeighbor0, rightNeighbor1, rightNeighbor2)).unsqueeze(0)
+        right_neighbors = self.lin_concat(right_neighbors).squeeze()
+        
+        down_neighbors = torch.cat((downNeighbor0, downNeighbor1, downNeighbor2)).unsqueeze(0)
+        down_neighbors = self.lin_concat(down_neighbors).squeeze()
+        return (unary_potentials, right_neighbors, down_neighbors)
+                

@@ -37,14 +37,17 @@ class Dataset(data.Dataset):
     def __getitem__(self, ind):
         # Get the path from image id
         train_id = self.train_ids[ind]
+        train_id = 2
+#         train_id = 00001_00_10s.ARW
         in_files = glob.glob(input_dir + '%05d_00*.ARW' % train_id)
-        
+#         print(in_files)
         
         in_path = in_files[np.random.random_integers(0, len(in_files) - 1)]
         _, in_fn = os.path.split(in_path)
 
         gt_files = glob.glob(gt_dir + '%05d_00*.ARW' % train_id)
         gt_path = gt_files[0]
+#         print(in_path, gt_path)
         _, gt_fn = os.path.split(gt_path)
         in_exposure =  float(in_fn[9:-5])
         gt_exposure =  float(gt_fn[9:-5])
@@ -63,8 +66,8 @@ class Dataset(data.Dataset):
         H = self.input_images[str(ratio)[0:3]][ind].shape[1]
         W = self.input_images[str(ratio)[0:3]][ind].shape[2]
 
-        xx = np.random.randint(0,W-ps)
-        yy = np.random.randint(0,H-ps)
+        xx = W // 4
+        yy = H // 2
         input_patch = self.input_images[str(ratio)[0:3]][ind][:,yy:yy+ps,xx:xx+ps,:]
         gt_patch = self.gt_images[ind][:, yy*2:yy*2+ps*2, xx*2:xx*2+ps*2, :]
         

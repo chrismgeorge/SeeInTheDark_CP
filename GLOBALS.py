@@ -12,7 +12,7 @@ m_name = 'checkpoint_sony_e4000.pth'
 test_result_dir = './test_result_Sony/'
 
 # Globals
-ps = 256 # patch size (training)
+ps = 32 # patch size (training)
 save_freq = 500
 BATCH_SIZE = 1
 
